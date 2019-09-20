@@ -9,3 +9,7 @@ Software debouncing for buttons.
 ## rotary.h
 
 Software debouncing for rotary encoders.
+
+## led.h
+
+Print a number to an LED display using the LedControl library.
