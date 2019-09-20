@@ -21,7 +21,7 @@ enum ROTARY_TRANSITIONS {
  * -1 = 1 step counter clockwise
  *  0 = no step (either no movement or invalid due to bouncing)
  */
-static int8_t rotary_step(uint8_t *rotary, uint8_t rotb, uint8_t rota) {
+static int rotary_step(unsigned *rotary, unsigned rotb, unsigned rota) {
   *rotary = 0x0f & (*rotary << 2) | digitalRead(rotb) << 1 | digitalRead(rota);
   return rotary_cw(*rotary) ? 1:
          rotary_ccw(*rotary)?-1:
