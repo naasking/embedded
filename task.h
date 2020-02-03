@@ -15,19 +15,16 @@ typedef struct task {
     unsigned long deadline;     // next deadline in ms
 } task;
 
-//#define task_delay(t, ms) t->deadline = millis() + ms; await(t->deadline >= millis())
-#define task_delay(t, ms) (t)->deadline = millis() + (ms); await_while(1)
-
-typedef unsigned char u8;
+#define task_delay(t, ms) (t)->deadline = millis() + (ms); case __LINE__: return __LINE__;
 
 task taskq[TASK_MAX];
-volatile u8 taskc;
+volatile unsigned char taskc;
 
 /*
  * Create a new task.
  */
 static void task_new(async (*fn)(struct task*)) {
-    u8 i = taskc++;
+    unsigned char i = taskc++;
     async_init(&taskq[i]);
 	taskq[i].fn = fn;
 	taskq[i].deadline = 0;
@@ -39,7 +36,7 @@ static void task_new(async (*fn)(struct task*)) {
 static void task_exit(task* t) {
 	t->fn = NULL;
 	async_init(t);
-	u8 i = taskc;
+	unsigned char i = taskc;
 	if (t < &taskq[i]) {
 		task* last = &taskq[i];
 		memcpy(t, t + sizeof(struct task), last - t - sizeof(struct task));
