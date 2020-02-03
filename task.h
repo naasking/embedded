@@ -56,54 +56,54 @@ static void task_run() {
 	// unroll the scheduling loop using Duff's device
 	unsigned edf = 0;
 	unsigned long edf_d = taskq[edf].deadline - millis();
-    for (unsigned i = 1; i < taskc; ++i) {
+	for (unsigned i = 1; i < taskc; ++i) {
 		unsigned long i_d;
-        switch(taskc - i) {
-        default:
+		switch (taskc - i) {
+		default:
 			i_d = taskq[i].deadline - millis();
 			if (i_d < edf_d) {
 				edf = i;
 				edf_d = i_d;
 			}
-            ++i;
-        case 3:
+			++i;
+		case 3:
 			i_d = taskq[i].deadline - millis();
 			if (i_d < edf_d) {
 				edf = i;
 				edf_d = i_d;
 			}
-            ++i;
-        case 2:
+			++i;
+		case 2:
 			i_d = taskq[i].deadline - millis();
 			if (i_d < edf_d) {
 				edf = i;
 				edf_d = i_d;
 			}
-            ++i;
-        case 1:
+			++i;
+		case 1:
 			i_d = taskq[i].deadline - millis();
 			if (i_d < edf_d) {
 				edf = i;
 				edf_d = i_d;
 			}
-            ++i;
-        case 0:
+			++i;
+		case 0:
 			i_d = taskq[i].deadline - millis();
 			if (i_d < edf_d) {
 				edf = i;
 				edf_d = i_d;
 			}
-        }
-    }
-    task* t = &taskq[edf];
+		}
+	}
+	task* t = &taskq[edf];
 	unsigned long d = t->deadline;
-    if (d >= millis()) {
-        t->_async_kcont = t->fn(&taskq[edf]);
+	if (d >= millis()) {
+		t->_async_kcont = t->fn(&taskq[edf]);
 		if (async_done(t))
 			task_exit(t);
 		else if (t->deadline == d)
 			t->deadline = millis() + 1; // add 1ms delay if just polling
-    }
+	}
 }
 
 #endif
