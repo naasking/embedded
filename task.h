@@ -84,7 +84,7 @@ static void task_run() {
 		if (async_done(t))
 			task_exit(t);
 		else if (t->deadline == d)
-			t->deadline = millis() + 1; // delay 1ms by default
+			t->deadline = millis() + 1; // add 1ms delay if just polling
     }
 }
 
