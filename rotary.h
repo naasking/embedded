@@ -1,5 +1,5 @@
-#ifndef __ROTARY_H__
-#define __ROTARY_H__
+#ifndef ROTARY_H
+#define ROTARY_H
 
 /**
  * Rotary encoder debouncing

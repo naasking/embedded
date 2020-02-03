@@ -1,32 +1,28 @@
-#ifndef __BTN_H__
-#define __BTN_H__
+#ifndef BTN_H
+#define BTN_H
 
 /**
  * Button debouncing
  */
 
-#ifndef BTN_LIMIT
-#define BTN_LIMIT 7
-#endif
-
 /**
  * Button data structure tracking currently active state and a counter for debouncing.
  */
 typedef struct {
-  unsigned active : 1;
-  unsigned count : 8 * sizeof(char) - 1;
-} btn_state;
+  unsigned char active : 1;
+  unsigned char count : 8 * sizeof(unsigned char) - 1;
+} btn_poll;
 
 /**
- * Debounce button.
+ * Poll the button's status.
  * 
- * Returns: true if button is currently bouncing, false otherwise.
+ * Returns: true if button value has settled, false if it's bouncing.
  * btn->active always reflects the last settled button state.
  */
-static unsigned btn_bouncing(unsigned pin, btn_state* btn) {
+static unsigned btn_poll(unsigned pin, btn_poll* btn, unsigned limit) {
   unsigned active = digitalRead(pin);
-  if (active != btn->active && BTN_LIMIT < ++btn->count) {
-    /* count 7 consecutive changes before considering the button pressed */
+  /* button state changes after the current status is seem 'limit' times */
+  if (active != btn->active && limit < ++btn->count) {
     btn->active = active;
     btn->count = 0;
     return 0;
@@ -35,6 +31,41 @@ static unsigned btn_bouncing(unsigned pin, btn_state* btn) {
     return 0;
   }
   return 1;
+}
+
+
+/**
+ * Button data structure tracking currently active state and a counter for debouncing.
+ */
+typedef struct {
+  unsigned active : 1;
+  unsigned last : 8 * sizeof(unsigned) - 1;
+} btn_async;
+
+/**
+ * Notify button of change event via interrupt.
+ */
+static void btn_onchange(btn_state* btn) {
+  /* button state changes after the current status is seem 'limit' times */
+  if (btn->last == 0) {
+    btn->last = millis();
+  }
+}
+
+/**
+ * Checkthe button's status.
+ * 
+ * Returns: true if button value has settled, false if it's bouncing.
+ * btn->active always reflects the last settled button state.
+ */
+static unsigned btn_ready(unsigned pin, btn_state* btn, unsigned delay) {
+  /* button state changes after the current status is seem 'limit' times */
+  if (millis() - btn->last > delay) {
+    btn->active = digitalRead(pin);
+    btn->last = 0;
+    return 1;
+  }
+  return 0;
 }
 
 #endif
