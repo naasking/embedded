@@ -39,14 +39,13 @@ static unsigned btn_poll(unsigned pin, btn_poll* btn, unsigned limit) {
  */
 typedef struct {
   unsigned active : 1;
-  unsigned last : 8 * sizeof(unsigned) - 1;
+  unsigned long last : 8 * sizeof(unsigned)	 - 1;
 } btn_async;
 
 /**
  * Notify button of change event via interrupt.
  */
-static void btn_onchange(btn_state* btn) {
-  /* button state changes after the current status is seem 'limit' times */
+static void btn_onchange(btn_async* btn) {
   if (btn->last == 0) {
     btn->last = millis();
   }
@@ -58,8 +57,8 @@ static void btn_onchange(btn_state* btn) {
  * Returns: true if button value has settled, false if it's bouncing.
  * btn->active always reflects the last settled button state.
  */
-static unsigned btn_ready(unsigned pin, btn_state* btn, unsigned delay) {
-  /* button state changes after the current status is seem 'limit' times */
+static unsigned btn_ready(unsigned pin, btn_async* btn, unsigned delay) {
+  /* button state is updated after 'delay' has elapsed */
   if (millis() - btn->last > delay) {
     btn->active = digitalRead(pin);
     btn->last = 0;
