@@ -8,6 +8,6 @@
  */
 #define every(x, units) \
   static unsigned long _every##_##__LINE__ = 0; \
-  if (units() - _every##_##__LINE__ > (x) && (_every##_##__LINE__ = millis(),1))
+  if (units() - _every##_##__LINE__ >= (x) && (_every##_##__LINE__ += (x),1))
 
 #endif
