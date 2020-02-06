@@ -3,7 +3,11 @@
 
 /**
  * Defines a block of code that runs every 'x' milliseconds.
+ * x: the number of time units
+ * units: millis or micros
  */
-#define every(x) static unsigned long _every##_##__LINE__ = 0; if (millis() - _every##_##__LINE__ > (x))
+#define every(x, units) \
+  static unsigned long _every##_##__LINE__ = 0; \
+  if (units() - _every##_##__LINE__ > (x) && (_every##_##__LINE__ = millis(),1))
 
 #endif
