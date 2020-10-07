@@ -25,12 +25,12 @@ static unsigned btn_poll(unsigned pin, btn_sync* btn, unsigned limit) {
   if (active != btn->active && limit < ++btn->count) {
     btn->active = active;
     btn->count = 0;
-    return 0;
+    return 1;
   } else if (active == btn->active && 0 > --btn->count) {
     btn->count = 0;
-    return 0;
+    return 1;
   }
-  return 1;
+  return 0;
 }
 
 
