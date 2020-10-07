@@ -6,6 +6,9 @@
 
 /**
  * Display an unsigned integer on an LED display
+ *  addr     address of the display
+ *  x        the number to be displayed.
+ *  period   the decimal point index.
  */
 static void led_uint(LedControl led, unsigned addr, unsigned long x, unsigned period) {
   for (int digit = 0; digit < 8; ++digit) {
