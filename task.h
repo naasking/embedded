@@ -50,7 +50,6 @@
  * and task_state:
  * 
  *  struct fn_state {
- *      async_state;
  *  	task_state;
  *      ...
  *  }
@@ -62,11 +61,23 @@
  *
  * Cost of scheduling is O(N), where N = number of tasks. N is typically very
  * low for the contexts in which task.h should be used.
-*/
+ * 
+ * Every task MUST call either task_wake(), task_resched(), task_period(),
+ * or task_sleep() somewhere in its processing loop in order for scheduling to
+ * work correctly.
+ */
 
 #include <stdio.h>
 #include "async.h"
-#include "clk.h"
+#include "clock.h"
+
+//FIXME: there's a problem with using await() with tasks. If a task T1 is
+//selected to run then it has the earliest deadline, but if T1's await()
+//condition fails it will immediately return, the scheduling loop will restart,
+//and it will be picked again, fail again and return, and so on. Basically,
+//T1 starves the rest of the tasks. Maybe the behaviour of await() can be
+//overloaded via an optional macro, and tasks would revise the deadline
+//or resume condition.
 
 /**
  * An async procedure
@@ -84,7 +95,7 @@ struct task_state {
 /**
  * Definition of task to include in your task data structure
  */
-#define task_state struct task_state _task_state;
+#define task_state async_state; struct task_state _task_state
 
 /**
  * Wake the task at the given time.
@@ -193,7 +204,7 @@ struct task_state {
  * @param t The task state
  */
 #define task_sched(f, t) \
-if ((f)->_task_state.resume <= _task_now && task_deadline(t) <= _task_deadline) { \
+if ((f)->_task_state.resume <= _task_now && task_deadline(t) < _task_deadline) { \
   _task_deadline = (t)->_task_state.deadline; _task_st = (t); _task_f = (async(*)(void*))(f); \
 }
 
