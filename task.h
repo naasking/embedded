@@ -3,128 +3,45 @@
 
 // WARNING: experimental
 //
-// A simple cooperative tasking API based on async.h
-// I'm not sure if this really provides much advantage over plain async.h
-//
-// Cons:
-// 1. It consumes storage for the task queue, but this task queue could just
-//    be embedded in the code itself, possibly via a macro.
-// 2. Encourages a program structure with dynamic program fork/exit. Probably
-//	  should delete task_exit and task_new, and just use something like:
+// A simple cooperative tasking API using earliest deadline first scheduling:
 //
 //		task_sched(task_run(task_state1, task_fn1),
 //					task_run(task_state2, task_fn2), ...)
 //
-// Pros:
-// 1. Could formalize task delays and deadlines, and so centralize the storage
-//	  needed instead of duplicating timer state everywhere.
-// 2. Could implement dynamic EDF scheduling even without a task queue, eg.
-//	  use a macro task_run(...) which expands to a if-based dispatch tree
-//	  that finds and runs the task with the earliest deadline.
-
-#ifndef TASK_MAX
-#define TASK_MAX 8
-#endif
+// This won't be real-time unless very careful analysis is made concerning the
+// longest code sequence to ascertain max latency.
+//
+// There might be a way to add real-time tasks via a timer though. The idea
+// is to have two "kernels", this cooperative one and an interrupt-driven
+// real-time mode, and switch between them with setjmp/longjmp.
 
 #include <stdio.h>
 #include "async.h"
 
-typedef struct task {
+enum TASK_STATE { RUNNING, WAITING, }
+
+typedef struct task_state {
     async_state;                // the async context used to resume the process
-    async (*fn)(struct task*);  // the function for the task's code
     unsigned long deadline;     // next deadline in ms
-} task;
+} task_state;
 
-#define task_delay(t, ms) (t)->deadline = millis() + (ms); return __LINE__; case __LINE__:
+// delay the task until after the deadline 
+//FIXME: this isn't quite correct. delay() should not set a deadline, but should
+//pause the task until the delay expires. yield() should accept a deadline. May
+//need a single clock/time field for use as a deadline or resumption time, with a
+//task_state field to discriminate.
+#define task_delay(t, ms) (t)->deadline = millis() + (ms); async_yield
+#define task_yield(t, deadline) (t)->deadline = millis() + (ms); async_yield
 
-task taskq[TASK_MAX];
-volatile unsigned char taskc;
-
-/*
- * Create a new task.
- */
-static void task_new(async (*fn)(struct task*)) {
-	//FIXME: add error checking that task count < TASK_MAX
-    unsigned char i = taskc++;
-    async_init(&taskq[i]);
-	taskq[i].fn = fn;
-	taskq[i].deadline = millis();
+/* find and run task with earliest deadline */
+#define task_sched(...) { \
+	unsigned __deadline = millis(); \
+	struct async *__st = NULL; \
+	async(*__f)(struct async*) = NULL; \
+	__VA_ARGS__; \
+	if (__f != NULL) \
+		async_call(__f, __st); \
 }
-
-/*
- * Mark the task completed.
- */
-static void task_exit(task* t) {
-	// reset the task state and compact the task queue
-	t->fn = NULL;
-	async_init(t);
-	unsigned char i = taskc;
-	if (t < &taskq[i]) {
-		task* last = &taskq[i];
-		memcpy(t, t + sizeof(struct task), last - t - sizeof(struct task));
-	}
-	taskc--;
-}
-
-/*
- * Run the next task using EDF scheduling.
- *
- * NOTE: this will stop working correctly when the timer overflows.
- */
-static void task_run() {
-	if (taskc == 0)
-		return;
-	// unroll the scheduling loop using Duff's device
-	unsigned edf = 0;
-	unsigned long edf_d = taskq[edf].deadline - millis();
-	for (unsigned i = 1; i < taskc; ++i) {
-		unsigned long i_d;
-		switch (taskc - i) {
-		default:
-			i_d = taskq[i].deadline - millis();
-			if (i_d < edf_d) {
-				edf = i;
-				edf_d = i_d;
-			}
-			++i;
-		case 3:
-			i_d = taskq[i].deadline - millis();
-			if (i_d < edf_d) {
-				edf = i;
-				edf_d = i_d;
-			}
-			++i;
-		case 2:
-			i_d = taskq[i].deadline - millis();
-			if (i_d < edf_d) {
-				edf = i;
-				edf_d = i_d;
-			}
-			++i;
-		case 1:
-			i_d = taskq[i].deadline - millis();
-			if (i_d < edf_d) {
-				edf = i;
-				edf_d = i_d;
-			}
-			++i;
-		case 0:
-			i_d = taskq[i].deadline - millis();
-			if (i_d < edf_d) {
-				edf = i;
-				edf_d = i_d;
-			}
-		}
-	}
-	task* t = &taskq[edf];
-	unsigned long d = t->deadline;
-	if (d >= millis()) {
-		t->_async_kcont = t->fn(&taskq[edf]);
-		if (async_done(t))
-			task_exit(t);
-		else if (t->deadline == d)
-			t->deadline = millis() + 1; // add 1ms delay if just polling
-	}
-}
+#define task_run(st, t) if ((t)->deadline <= __deadline) { __deadline = (t)->deadline; __st = (struct async*)(st); __f = (async(*)(async*))(t); }
 
 #endif
