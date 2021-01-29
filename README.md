@@ -1,6 +1,6 @@
 # Embedded
 
-Header-only libraries useful for arduino and other embedded environments
+Header-only libraries useful for Arduino and other embedded environments
 
 ## btn.h
 
@@ -73,10 +73,101 @@ Print a number to an LED display using the LedControl library:
 A convenient macro for synchronously running some code periodically:
 
     void loop() {
-        every (5, millis) {
+        every(5, millis) {
             // do something
         }
     }
 
 Obviously the precise timing will depend on the length of the remaining code
 in the loop.
+
+## async.h
+
+Lightweight, stackless async/await pattern:
+
+    #include "async.h"
+
+    struct async pt;
+    struct timer timer;
+
+    async example(struct async *pt) {
+        async_begin(pt);
+        
+        while(1) {
+            if(initiate_io()) {
+                timer_start(&timer);
+                await(io_completed() || timer_expired(&timer));
+                read_data();
+            }
+        }
+        async_end;
+    }
+
+## clock.h
+
+Abstract over clock API:
+
+Function|Description
+--------|-----------
+*clock_ms()*|The clock time in milliseconds
+*clock_us()*|The clock time in microseconds
+
+## io.h
+
+Abstract over general purpose I/O API:
+
+Function|Description
+--------|-----------
+*io_mode(pin, mode)*|Set the pin's mode
+*io_readb(pin)*|Read a bit from the pin
+*io_writeb(pin, bit)*|Write a bit to the pin
+*io_sample(pin)*|Read an analog value from the pin
+*io_pwm(pin, duty)*|Output a PWM signal to a pin with a given duty cycle
+
+
+# Experimental
+
+## task.h
+
+Lightweight tasking API which extends async.h with dynamic, earliest
+deadline first scheduling:
+
+    #include "task.h"
+
+    // sizeof(task_state) == sizeof(unsigned) + 2 * sizeof(unsigned long)
+    typedef struct { task_state; ... } t1state;
+    typedef struct { task_state; ... } t2state;
+
+    task tsk(t1state *s) {
+        task_begin(s);
+        
+        while(1) {
+            ...
+            task_sleep(s, 5);      // sleep for 5ms
+            ...
+            await( /*condition*/ ); // can still use async.h API
+
+            // sleep and wake task 80 ms after its last deadline
+            task_wake(s, task_deadline(s) + 80);
+            ...
+            task_period(s, 200);   // task runs every 200 ms of clock time
+        }
+        task_end;
+    }
+
+    void setup() {
+        task_init(&t1state);
+        task_init(&t2state);
+    }
+
+    void loop() {
+        task_run(task_sched(tsk, &t1state),
+                 task_sched(tsk, &t2state));
+    }
+
+
+## ctxt.h
+
+A platform-agnostic context switching API that enables true stack/context
+switching with which you can create proper cooperative threading, fibers,
+coroutines, etc.
