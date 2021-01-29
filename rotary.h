@@ -37,8 +37,8 @@
  * Process quadrature rotary events in an interrupt handler so you don't miss
  * steps:
  * 
- * static unsigned rot_state;
- * static unsigned rot_pos;
+ * static volatile unsigned rot_state;
+ * static volatile unsigned rot_pos;
  * 
  * void setup() {
  *    attachInterrupt(digitalPinToInterrupt(PIN_X), &rot_onchange, CHANGE);

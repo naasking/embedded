@@ -23,7 +23,7 @@ This must be invoked regularly in the main program loop:
 
 This requires an interrupt handler and a synchronous check in the main program loop:
 
-    static btn_async btn1;
+    static volatile btn_async btn1;
 
     static void btn1_onchange() {
         btn_onchange(&btn1);
@@ -45,8 +45,8 @@ This requires an interrupt handler and a synchronous check in the main program l
 Software debouncing for quadrature rotary encoders. Process encoder events
 in an interrupt handler so you don't miss steps:
 
-    static unsigned rot_state;
-    static unsigned rot_pos;
+    static volatile unsigned rot_state;
+    static volatile unsigned rot_pos;
     
     void setup() {
         attachInterrupt(digitalPinToInterrupt(PIN_X), &rot_onchange, CHANGE);

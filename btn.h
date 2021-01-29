@@ -55,7 +55,7 @@
  * your synchronous loop, you then call btn_ready() and if it returns true
  * then the button was pressed.
  * 
- * static btn_async btn1;
+ * static volatile btn_async btn1;
  * 
  * static void btn1_onchange(){
  *    btn_onchange(&btn1);
