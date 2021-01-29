@@ -31,8 +31,11 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "io.h"
+
 /**
- * # Quadrature Rotary Encoder Debouncing
+ * @file rotary.h
+ * Quadrature Rotary Encoder Debouncing
  * 
  * Process quadrature rotary events in an interrupt handler so you don't miss
  * steps:
@@ -49,25 +52,40 @@
  * }
  */
 
-// a bitmask enumerating the valid state transitions
+/**
+ * A bitmask encoding valid state transitions.
+ */
 enum ROTARY_TRANSITIONS {
   ROTARY_CW  = 10260, //=B0010100000010100,
   ROTARY_CCW = 16770, //=B0100000110000010,
 };
 
+/**
+ * Check whether last rotary encoder move was clockwise.
+ * 
+ * @param r Rotary encoder state
+ * @return 1 if last move was clockwise, 0 otherwise
+ */
 #define rotary_cw(r) (1 << (r)) & ROTARY_CW
+
+/**
+ * Check whether last rotary encoder move was counterclockwise.
+ * 
+ * @param r Rotary encoder state
+ * @return 1 if last move was counterclockwise, 0 otherwise
+ */
 #define rotary_ccw(r) (1 << (r)) & ROTARY_CCW
 
 /**
- * Process a rotary encoder step
- *
- * Returns:
- *  1 = 1 step clockwise
- * -1 = 1 step counter clockwise
- *  0 = no step (either no movement or invalid due to bouncing)
+ * Process a rotary encoder step.
+ * 
+ * @param rotary Rotary encoder state
+ * @param rotb Rotary encoder B pin
+ * @param rota Rotary encoder A pin
+ * @return 1 = 1 step clockwise, -1 = 1 step counter clockwise, 0 = no valid step
  */
 static int rotary_step(unsigned *rotary, unsigned rotb, unsigned rota) {
-  *rotary = 0x0f & (*rotary << 2) | digitalRead(rotb) << 1 | digitalRead(rota);
+  *rotary = 0x0f & (*rotary << 2) | io_readb(rotb) << 1 | io_readb(rota);
   return rotary_cw(*rotary) ? 1:
          rotary_ccw(*rotary)?-1:
                               0;
