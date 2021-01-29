@@ -1,8 +1,8 @@
 #pragma once
-#ifndef EVERY_H
-#define EVERY_H
+#ifndef CLOCK_H
+#define CLOCK_H
 
-/**
+/*
  * Copyright 2021 Sandro Magi
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,23 +30,40 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * Author: Sandro Magi <naasking@gmail.com>
  */
 
 /**
- * Defines a block of code that runs periodically every 'x' * 'units' of time.
- * x: the number of time units
- * units: millis or micros
- * 
- * Example:
- * 
- * void loop() {
- *    every (5, millis) {
- *      // do something
- *    }
- * }
+ * @file clock.h
+ * Clock functions.
  */
-#define every(x, units) \
-  static unsigned long _every##_##__LINE__ = 0; \
-  if (units() - _every##_##__LINE__ >= (x) && (_every##_##__LINE__ += (x),1))
+
+/**
+ * Clock time in milliseconds.
+ * 
+ * @return Time in milliseconds, type is unsigned long
+ */
+#define clock_ms() _clock_ms()
+
+/**
+ * Clock time in microseconds.
+ * 
+ * @return Time in microseconds, type is unsigned long
+ */
+#define clock_us() _clock_ms()
+
+/************* INTERNALS ****************/
+
+//FIXME: don't like hard-coding Arduino dependency. See io.h.
+
+/* default to Arduino time API */
+#ifndef _clock_ms
+#define _clock_ms millis
+#endif
+
+#ifndef _clock_us
+#define _clock_us micros
+#endif
 
 #endif

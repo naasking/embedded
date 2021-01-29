@@ -1,7 +1,8 @@
+#pragma once
 #ifndef BTN_H
 #define BTN_H
 
-/**
+/*
  * Copyright 2021 Sandro Magi
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,10 +30,16 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * Author: Sandro Magi <naasking@gmail.com>
  */
 
+#include "clock.h"
+#include "io.h"
+
 /**
- * Button debouncing
+ * @file btn.h
+ * Software debouncing for mechanical button-like inputs.
  * 
  * # Synchronous Mode
  * 
@@ -83,11 +90,16 @@ typedef struct {
 /**
  * Poll the button's status.
  * 
- * Returns: true if button value has settled, false if it's bouncing.
- * btn->state always reflects the last settled button state.
+ * Checks whether the button has finished bouncing. btn->state always reflects the
+ * last settled button state until this function returns true.
+ * 
+ * @param pin The pin number
+ * @param btn The button state
+ * @param limit The sample threshold to consider the button settled
+ * @return True if button value has settled, false if it's bouncing.
  */
 static unsigned btn_poll(unsigned pin, btn_sync* btn, unsigned limit) {
-  unsigned state = digitalRead(pin);
+  unsigned state = io_readb(pin);
   /* button state changes after the current status is seem 'limit' times */
   if (state != btn->state && limit < ++btn->count) {
     btn->state = state;
@@ -110,11 +122,13 @@ typedef struct {
 } btn_async;
 
 /**
- * Notify button of change event via interrupt.
+ * Process button interrupt event
+ * 
+ * Update the button state based on an interrupt change event.
  */
 static void btn_onchange(btn_async* btn) {
   if (btn->last == 0) {
-    btn->last = millis();
+    btn->last = clock_ms();
   }
 }
 
@@ -126,8 +140,8 @@ static void btn_onchange(btn_async* btn) {
  */
 static unsigned btn_ready(unsigned pin, btn_async* btn, unsigned delay) {
   /* button state is updated after 'delay' has elapsed */
-  if (millis() - btn->last > delay) {
-    btn->state = digitalRead(pin);
+  if (clock_ms() - btn->last > delay) {
+    btn->state = io_readb(pin);
     btn->last = 0;
     return 1;
   }

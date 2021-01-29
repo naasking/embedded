@@ -1,7 +1,8 @@
+#pragma once
 #ifndef LED_H
 #define LED_H
 
-/**
+/*
  * Copyright 2021 Sandro Magi
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +33,8 @@
  */
 
 /**
- * # Formatted LED Output
+ * @file led.h
+ * Formatted LED Output
  *
  * static LedControl led;
  * static unsigned x;
@@ -43,15 +45,18 @@
  * }
  */
 
-/* depends on LedControl library */
+//FIXME: should probably move this under arch/arduino/led.h or something
+
+/* depends on LedControl arduino library */
 #include <LedControl.h>
 
 /**
- * Display an unsigned integer on an LED display
- *  led      the led module
- *  addr     address of the display
- *  x        the number to be displayed.
- *  period   the decimal point index.
+ * Display a value.
+ * Display an unsigned integer on an LED display.
+ * @param led  The led module
+ * @param addr Address of the display
+ * @param x    The number to be displayed.
+ * @param period The decimal point index.
  */
 static void led_uint(LedControl led, unsigned addr, unsigned long x, unsigned period) {
   for (int digit = 0; digit < 8; ++digit) {

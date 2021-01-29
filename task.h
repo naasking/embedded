@@ -1,47 +1,200 @@
+#pragma once
 #ifndef TASK_H
 #define TASK_H
 
+/*
+ * Copyright 2021 Sandro Magi
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its contributors
+ * may be used to endorse or promote products derived from this software without
+ * specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * Author: Sandro Magi <naasking@gmail.com>
+ */
+
 // WARNING: experimental
-//
-// A simple cooperative tasking API using earliest deadline first scheduling:
-//
-//		task_sched(task_run(task_state1, task_fn1),
-//					task_run(task_state2, task_fn2), ...)
-//
-// This won't be real-time unless very careful analysis is made concerning the
-// longest code sequence to ascertain max latency.
-//
-// There might be a way to add real-time tasks via a timer though. The idea
-// is to have two "kernels", this cooperative one and an interrupt-driven
-// real-time mode, and switch between them with setjmp/longjmp.
+
+/**
+ * @file task.h
+ * A cooperative tasking API using earliest deadline first dynamic scheduling:
+ *
+ *  task_run(task_sched(task_state1, task_fn1),
+ *           task_sched(task_state2, task_fn2), ...)
+ *
+ * This won't be real-time without very careful analysis of the longest
+ * code sequence between yield points, which is what determines max latency.
+ *
+ * Callers must define their local state as a struct and include async_state
+ * and task_state:
+ * 
+ *  struct fn_state {
+ *      async_state;
+ *  	task_state;
+ *      ...
+ *  }
+ *
+ * There is only one rule to follow to ensure this all works: place all switch
+ * statements in their own function. task.h uses Duff's device which does not
+ * play well with switch. If you always place the switch in its own function
+ * you won't have any issues.
+ *
+ * Cost of scheduling is O(N), where N = number of tasks. N is typically very
+ * low for the contexts in which task.h should be used.
+*/
 
 #include <stdio.h>
 #include "async.h"
+#include "clk.h"
 
-enum TASK_STATE { RUNNING, WAITING, }
+/**
+ * An async procedure
+ */
+typedef async task;
 
-typedef struct task_state {
-    async_state;                // the async context used to resume the process
-    unsigned long deadline;     // next deadline in ms
-} task_state;
+/**
+ * Task scheduling data
+ */
+struct task_state {
+    unsigned long deadline;     /* next deadline in ms */
+    unsigned long _task_resume; /* resume the task at the given time */
+};
 
-// delay the task until after the deadline 
-//FIXME: this isn't quite correct. delay() should not set a deadline, but should
-//pause the task until the delay expires. yield() should accept a deadline. May
-//need a single clock/time field for use as a deadline or resumption time, with a
-//task_state field to discriminate.
-#define task_delay(t, ms) (t)->deadline = millis() + (ms); async_yield
-#define task_yield(t, deadline) (t)->deadline = millis() + (ms); async_yield
+/**
+ * Definition of task to include in your task data structure
+ */
+#define task_state struct task_state _task_state;
 
-/* find and run task with earliest deadline */
-#define task_sched(...) { \
-	unsigned __deadline = millis(); \
-	struct async *__st = NULL; \
-	async(*__f)(struct async*) = NULL; \
-	__VA_ARGS__; \
-	if (__f != NULL) \
-		async_call(__f, __st); \
+/**
+ * Wake the task at the given time.
+ * 
+ * Yields control and schedules the task to be resumed at the given
+ * clock time, in milliseconds.
+ * 
+ * @param t  The task state
+ * @param ms The clock time in milliseconds
+ */
+#define task_wake(t, ms) (t)->_task_state.resume = (ms); async_yield
+
+/**
+ * Sleep for the given time span.
+ * 
+ * Yields control and schedules the task to resume after the duration
+ * in milliseconds has elapsed.
+ * 
+ * @param t  The task state
+ * @param ms The duration to sleep, in milliseconds
+ */
+#define task_sleep(t, ms) task_wake(t, clock_ms() + ms)
+
+/**
+ * Reschedule the task for the given deadline.
+ * 
+ * Yields control and schedules the task to run before the given deadline,
+ * in milliseconds.
+ * 
+ * @param t The task state
+ * @param deadline The task's new deadline
+ */
+#define task_resched(t, deadline) task_deadline(t) = (deadline); async_yield
+
+/**
+ * Declare a periodic task.
+ * 
+ * Yields control and resets the task's next deadline according to the
+ * given periodic schedule.
+ * 
+ * @param t  The task state
+ * @param ms The periodic schedule, in milliseconds.
+ */
+#define task_period(t, ms) task_resched(task_deadline(t) + ms)
+
+/**
+ * The current deadline.
+ * 
+ * @param t The task state
+ */
+#define task_deadline(t) (t)->_task_state.deadline
+
+/**
+ * Switch to the given task.
+ * 
+ * @param f The task procedure
+ * @param t The task state
+ */
+#define task_switch(f, t) async_call(f, t)
+
+/**
+ * Mark the beginning of a task procedure.
+ * 
+ * @param t The task state
+ */
+#define task_begin(t) async_begin(t)
+
+/**
+ * Mark the end of a task procedure.
+ */
+#define task_end async_end
+
+/**
+ * Initialize a task structure.
+ * 
+ * Initialize the task procedure state structure.
+ * 
+ * @param t The task state
+ */
+#define task_init(t) async_init(t); task_deadline(t) = 0; (t)->_task_state.resume = 0
+
+/**
+ * Run a scheduled task.
+ * 
+ * Selects and runs the task with earliest deadline from the
+ * given list of tasks.
+ * 
+ * @param format The list of tasks to schedule
+ */
+#define task_run(...) { \
+    unsigned long _task_now = clock_ms(), _task_deadline = _task_now; \
+    void *_task_st = NULL; \
+    async(*_task_f)(void*) = NULL; \
+    __VA_ARGS__; \
+    if (_task_ != NULL) \
+        task_switch(_task_, _task_st); \
 }
-#define task_run(st, t) if ((t)->deadline <= __deadline) { __deadline = (t)->deadline; __st = (struct async*)(st); __f = (async(*)(async*))(t); }
+
+/**
+ * Schedule a task.
+ * 
+ * Schedules a task to run, ensuring that it satisfies its wake condition.
+ * Must be called within task_run().
+ * 
+ * @param f The task procedure
+ * @param t The task state
+ */
+#define task_sched(f, t) \
+if ((f)->_task_state.resume <= _task_now && task_deadline(t) <= _task_deadline) { \
+  _task_deadline = (t)->_task_state.deadline; _task_st = (t); _task_f = (async(*)(void*))(f); \
+}
 
 #endif
