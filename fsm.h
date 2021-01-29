@@ -1,6 +1,11 @@
 #ifndef FSM_H
 #define FSM_H
 
+// WARNING: experimental
+//
+// Set of macros defining an EDSL for simple finite state machines. Not
+// clear if this provides any real advantage over plain event-driven C code.
+
 // #ifndef FSM_Q_TYPE
 // #define FSM_Q_TYPE uint32_t
 // #endif

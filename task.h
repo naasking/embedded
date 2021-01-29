@@ -1,6 +1,27 @@
 #ifndef TASK_H
 #define TASK_H
 
+// WARNING: experimental
+//
+// A simple cooperative tasking API based on async.h
+// I'm not sure if this really provides much advantage over plain async.h
+//
+// Cons:
+// 1. It consumes storage for the task queue, but this task queue could just
+//    be embedded in the code itself, possibly via a macro.
+// 2. Encourages a program structure with dynamic program fork/exit. Probably
+//	  should delete task_exit and task_new, and just use something like:
+//
+//		task_sched(task_run(task_state1, task_fn1),
+//					task_run(task_state2, task_fn2), ...)
+//
+// Pros:
+// 1. Could formalize task delays and deadlines, and so centralize the storage
+//	  needed instead of duplicating timer state everywhere.
+// 2. Could implement dynamic EDF scheduling even without a task queue, eg.
+//	  use a macro task_run(...) which expands to a if-based dispatch tree
+//	  that finds and runs the task with the earliest deadline.
+
 #ifndef TASK_MAX
 #define TASK_MAX 8
 #endif
