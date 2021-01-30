@@ -90,6 +90,11 @@ struct task_state {
 #define task_state struct task_state _task_state
 
 /**
+ * Yield control back to the scheduler.
+ */
+#define task_yield() return __LINE__; case __LINE__:
+
+/**
  * Wake the task at the given time.
  * 
  * Yields control and schedules the task to be resumed at the given
@@ -97,7 +102,7 @@ struct task_state {
  * 
  * @param ms The clock time in milliseconds
  */
-#define task_wake(ms) { _task_state->resume = (ms); return __LINE__; case __LINE__: }
+#define task_wake(ms) { _task_state->resume = (ms); task_yield() }
 
 /**
  * Sleep for the given time span.
@@ -117,7 +122,7 @@ struct task_state {
  * 
  * @param deadline The task's new deadline
  */
-#define task_resched(deadline) task_deadline(_task_state) = (deadline); return __LINE__; case __LINE__: 
+#define task_resched(deadline) task_deadline(_task_state) = (deadline); task_yield() 
 
 /**
  * Declare a periodic task.
