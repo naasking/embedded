@@ -91,7 +91,7 @@ typedef async task;
  */
 struct task_state {
     unsigned long deadline;     /* next deadline in ms */
-    unsigned long _task_resume; /* resume the task at the given time */
+    unsigned long resume; /* resume the task at the given time */
 };
 
 /**
