@@ -208,7 +208,9 @@ struct task_state {
  */
 #define task_sched(f, t) \
 if ((f)->_task_state.resume <= _task_now && task_deadline(t) < _task_deadline) { \
-  _task_deadline = (t)->_task_state.deadline; _task_st = (t); _task_f = (async(*)(void*))(f); \
+  _task_deadline = (t)->_task_state.deadline; \
+  _task_st = (t); \
+  _task_f = (async(*)(void*))(f); \
 }
 
 #endif
