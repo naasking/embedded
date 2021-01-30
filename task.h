@@ -75,9 +75,11 @@
 //selected to run then it has the earliest deadline, but if T1's await()
 //condition fails it will immediately return, the scheduling loop will restart,
 //and it will be picked again, fail again and return, and so on. Basically,
-//T1 starves the rest of the tasks. Maybe the behaviour of await() can be
-//overloaded via an optional macro, and tasks would revise the deadline
-//or resume condition.
+//T1 starves the rest of the tasks until await() succeeds. Maybe the
+//behaviour of await() can be overloaded via an optional macro, and tasks
+//would revise the deadline or resume condition. The overload would call
+//task_sleep(1) or something, so that another task can proceed. Tasks might
+//simply need their own task_await() which accepts a sleep argument.
 
 /**
  * An async procedure
@@ -103,10 +105,9 @@ struct task_state {
  * Yields control and schedules the task to be resumed at the given
  * clock time, in milliseconds.
  * 
- * @param t  The task state
  * @param ms The clock time in milliseconds
  */
-#define task_wake(t, ms) (t)->_task_state.resume = (ms); async_yield
+#define task_wake(ms) _task_state->resume = (ms); async_yield
 
 /**
  * Sleep for the given time span.
@@ -114,10 +115,16 @@ struct task_state {
  * Yields control and schedules the task to resume after the duration
  * in milliseconds has elapsed.
  * 
- * @param t  The task state
  * @param ms The duration to sleep, in milliseconds
  */
-#define task_sleep(t, ms) task_wake(t, clock_ms() + ms)
+#define task_sleep(ms) task_wake(clock_ms() + ms)
+
+/**
+ * Wait for a condition to be true before proceeding.
+ * @param cond The condition to wait for
+ * @param ms The time to sleep if the condition fails
+ */
+#define task_await(cond, ms) if (!(cond)) { task_sleep(ms); }
 
 /**
  * Reschedule the task for the given deadline.
@@ -125,10 +132,9 @@ struct task_state {
  * Yields control and schedules the task to run before the given deadline,
  * in milliseconds.
  * 
- * @param t The task state
  * @param deadline The task's new deadline
  */
-#define task_resched(t, deadline) task_deadline(t) = (deadline); async_yield
+#define task_resched(deadline) task_deadline(_task_state) = (deadline); async_yield
 
 /**
  * Declare a periodic task.
@@ -136,17 +142,14 @@ struct task_state {
  * Yields control and resets the task's next deadline according to the
  * given periodic schedule.
  * 
- * @param t  The task state
  * @param ms The periodic schedule, in milliseconds.
  */
-#define task_period(t, ms) task_resched(task_deadline(t) + ms)
+#define task_period(ms) task_resched(task_deadline() + ms)
 
 /**
- * The current deadline.
- * 
- * @param t The task state
+ * The task's current deadline.
  */
-#define task_deadline(t) (t)->_task_state.deadline
+#define task_deadline() _task_state->deadline
 
 /**
  * Switch to the given task.
@@ -161,7 +164,7 @@ struct task_state {
  * 
  * @param t The task state
  */
-#define task_begin(t) async_begin(t)
+#define task_begin(t) struct task_state* _task_state = &(t)->_task_state; async_begin(t)
 
 /**
  * Mark the end of a task procedure.
