@@ -129,28 +129,33 @@ Function|Description
 
 ## task.h
 
-Lightweight tasking API which extends async.h with dynamic, earliest
-deadline first scheduling:
+Lightweight cooperative, stackless tasking API featuring dynamic, earliest deadline
+first scheduling. Tasks are mainly concerned with precise timing control:
 
     #include "task.h"
 
     // sizeof(task_state) == sizeof(unsigned) + 2 * sizeof(unsigned long)
-    typedef struct { task_state; ... } t1state;
-    typedef struct { task_state; ... } t2state;
+    typedef struct { task_state; ... } t_state;
 
-    task tsk(t1state *s) {
+    static t_state t1state;
+    static t_state t2state;
+
+    task example(t1state *s) {
         task_begin(s);
         
         while(1) {
             ...
-            task_sleep(s, 5);      // sleep for 5ms
-            ...
-            await( /*condition*/ ); // can still use async.h API
+            // check a condition every 10 ms until it fails
+            while(condition)
+                task_sleep(10);
 
-            // sleep and wake task 80 ms after its last deadline
-            task_wake(s, task_deadline(s) + 80);
+            // sleep and resume task 80 ms after its last deadline
+            task_wake(task_deadline(s) + 80);
             ...
-            task_period(s, 200);   // task runs every 200 ms of clock time
+            // sets task next deadline to 200 ms after its last deadline
+            // essentially running the task every 200 ms. Equivalent to:
+            //task_resched(task_deadline(s) + 200);
+            task_period(200);
         }
         task_end;
     }
@@ -161,10 +166,14 @@ deadline first scheduling:
     }
 
     void loop() {
-        task_run(task_sched(tsk, &t1state),
-                 task_sched(tsk, &t2state));
+        task_run(task_sched(example, &t1state),
+                 task_sched(example, &t2state));
     }
 
+This uses Duff's device, like async.h, and so local variables all need to
+be placed in the task state structure, and you should be careful with
+the use of switch statements. A simple rule of thumb that avoids all
+difficulties: place all switch statements in their own functions.
 
 ## ctxt.h
 

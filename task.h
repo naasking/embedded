@@ -38,7 +38,8 @@
 
 /**
  * @file task.h
- * A cooperative tasking API using earliest deadline first dynamic scheduling:
+ * A cooperative tasking API using earliest deadline first dynamic scheduling.
+ * Tasks are primarily concerned with precise timing control:
  *
  *  task_run(task_sched(task_state1, task_fn1),
  *           task_sched(task_state2, task_fn2), ...)
@@ -46,8 +47,13 @@
  * This won't be real-time without very careful analysis of the longest
  * code sequence between yield points, which is what determines max latency.
  *
- * Callers must define their local state as a struct and include async_state
- * and task_state:
+ * Cost of scheduling is O(N), where N = number of tasks. N is typically very
+ * low for the contexts in which task.h should be used.
+ *
+ * Every task MUST call one of the task_X() timing functions somewhere in its
+ * processing loop in order for scheduling to work correctly.
+ * 
+ * Callers must define their local state as a struct and include task_state:
  * 
  *  struct fn_state {
  *  	task_state;
@@ -58,46 +64,30 @@
  * statements in their own function. task.h uses Duff's device which does not
  * play well with switch. If you always place the switch in its own function
  * you won't have any issues.
- *
- * Cost of scheduling is O(N), where N = number of tasks. N is typically very
- * low for the contexts in which task.h should be used.
- * 
- * Every task MUST call either task_wake(), task_resched(), task_period(),
- * or task_sleep() somewhere in its processing loop in order for scheduling to
- * work correctly.
  */
 
 #include <stdio.h>
 #include "async.h"
 #include "clock.h"
 
-//FIXME: there's a problem with using await() with tasks. If a task T1 is
-//selected to run then it has the earliest deadline, but if T1's await()
-//condition fails it will immediately return, the scheduling loop will restart,
-//and it will be picked again, fail again and return, and so on. Basically,
-//T1 starves the rest of the tasks until await() succeeds. Maybe the
-//behaviour of await() can be overloaded via an optional macro, and tasks
-//would revise the deadline or resume condition. The overload would call
-//task_sleep(1) or something, so that another task can proceed. Tasks might
-//simply need their own task_await() which accepts a sleep argument.
-
 /**
- * An async procedure
+ * The task status.
  */
-typedef async task;
+typedef enum TASK_STATE { TASK_START = 0, TASK_RUNNING = TASK_START, TASK_EXIT = 1 } task;
 
 /**
- * Task scheduling data
+ * Task scheduling data.
  */
 struct task_state {
-    unsigned long deadline;     /* next deadline in ms */
-    unsigned long resume; /* resume the task at the given time */
+    task task_k;            /* the task continuation */
+    unsigned long deadline; /* next deadline in ms */
+    unsigned long resume;   /* resume the task at the given time in ms */
 };
 
 /**
- * Definition of task to include in your task data structure
+ * Definition of task to include in your task data structure.
  */
-#define task_state async_state; struct task_state _task_state
+#define task_state struct task_state _task_state
 
 /**
  * Wake the task at the given time.
@@ -107,7 +97,7 @@ struct task_state {
  * 
  * @param ms The clock time in milliseconds
  */
-#define task_wake(ms) _task_state->resume = (ms); async_yield
+#define task_wake(ms) { _task_state->resume = (ms); return __LINE__; case __LINE__: }
 
 /**
  * Sleep for the given time span.
@@ -117,14 +107,7 @@ struct task_state {
  * 
  * @param ms The duration to sleep, in milliseconds
  */
-#define task_sleep(ms) task_wake(clock_ms() + ms)
-
-/**
- * Wait for a condition to be true before proceeding.
- * @param cond The condition to wait for
- * @param ms The time to sleep if the condition fails
- */
-#define task_await(cond, ms) if (!(cond)) { task_sleep(ms); }
+#define task_sleep(ms) task_wake(clock_ms() + (ms))
 
 /**
  * Reschedule the task for the given deadline.
@@ -134,7 +117,7 @@ struct task_state {
  * 
  * @param deadline The task's new deadline
  */
-#define task_resched(deadline) task_deadline(_task_state) = (deadline); async_yield
+#define task_resched(deadline) task_deadline(_task_state) = (deadline); return __LINE__; case __LINE__: 
 
 /**
  * Declare a periodic task.
@@ -144,7 +127,7 @@ struct task_state {
  * 
  * @param ms The periodic schedule, in milliseconds.
  */
-#define task_period(ms) task_resched(task_deadline() + ms)
+#define task_period(ms) task_resched(task_deadline() + (ms))
 
 /**
  * The task's current deadline.
@@ -157,28 +140,31 @@ struct task_state {
  * @param f The task procedure
  * @param t The task state
  */
-#define task_switch(f, t) async_call(f, t)
+#define task_switch(f, t) (t)->_task_state.task_k = (f)(t)
 
 /**
  * Mark the beginning of a task procedure.
  * 
  * @param t The task state
  */
-#define task_begin(t) struct task_state* _task_state = &(t)->_task_state; async_begin(t)
+#define task_begin(t) struct task_state* _task_state = &(t)->_task_state; switch(_task_state->task_k) { case TASK_START:
 
 /**
  * Mark the end of a task procedure.
  */
-#define task_end async_end
+#define task_end case TASK_EXIT: task_exit; }
+
+/**
+ * Mark task as completed and exit.
+ */
+#define task_exit return TASK_EXIT
 
 /**
  * Initialize a task structure.
  * 
- * Initialize the task procedure state structure.
- * 
  * @param t The task state
  */
-#define task_init(t) async_init(t); task_deadline(t) = 0; (t)->_task_state.resume = 0
+#define task_init(t) (t)->task_k = TASK_START; task_deadline(t) = 0; (t)->_task_state.resume = 0
 
 /**
  * Run a scheduled task.
@@ -191,11 +177,15 @@ struct task_state {
 #define task_run(...) { \
     unsigned long _task_now = clock_ms(), _task_deadline = _task_now; \
     void *_task_st = NULL; \
-    async(*_task_f)(void*) = NULL; \
+    task(*_task_f)(void*) = NULL; \
     __VA_ARGS__; \
     if (_task_ != NULL) \
         task_switch(_task_, _task_st); \
 }
+
+//FIXME: have conditional compilation flag for "persistent processes", which
+//skips the TASK_EXIT status check as all processes will run forever. Just a
+//minor optimization which could save time and energy on embedded devices.
 
 /**
  * Schedule a task.
@@ -207,10 +197,10 @@ struct task_state {
  * @param t The task state
  */
 #define task_sched(f, t) \
-if ((f)->_task_state.resume <= _task_now && task_deadline(t) < _task_deadline) { \
+if ((t)->task_k != TASK_EXIT && (f)->_task_state.resume <= _task_now && task_deadline(t) < _task_deadline) { \
   _task_deadline = (t)->_task_state.deadline; \
   _task_st = (t); \
-  _task_f = (async(*)(void*))(f); \
+  _task_f = (task(*)(void*))(f); \
 }
 
 #endif
