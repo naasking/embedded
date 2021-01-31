@@ -43,7 +43,7 @@ typedef struct evq {
  * @return True if the item was added successfully, false otherwise
  */
 //#define evq_add(e, n, x) (e)->n < EVQ_MAX(n) && ((e)->evts = (e)->evts | ((x) >> n * (e)->n++), 1)
-#define evq_add(e, n, x) (isr_off(), (e)->n < EVQ_MAX(n) && ((e)->evts = (e)->evts | ((x) >> n * (e)->n++), isr_on(), 1) || (isr_on(), 0))
+#define evq_add(e, n, x) (isr_off(), (e)->n < EVQ_MAX(n) && ((e)->evts = (e)->evts | ((x) >> (n * (e)->n++)), isr_on(), 1) || (isr_on(), 0))
 
 /**
  * Remove the next item from the event queue.
