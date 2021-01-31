@@ -42,8 +42,17 @@ typedef struct evq {
  * @param x The event to add
  * @return True if the item was added successfully, false otherwise
  */
-//#define evq_add(e, n, x) (e)->n < EVQ_MAX(n) && ((e)->evts = (e)->evts | ((x) >> n * (e)->n++), 1)
-#define evq_add(e, n, x) (isr_off(), (e)->n < EVQ_MAX(n) && ((e)->evts = (e)->evts | ((x) >> (n * (e)->n++)), isr_on(), 1) || (isr_on(), 0))
+static //inline
+bool evq_add(volatile evq* e, unsigned n, unsigned x) {
+    isr_off();
+    if (e->n < EVQ_MAX(n)) {
+        e->evts |= x >> (n * e->n++);
+        isr_on();
+        return 1;
+    }
+    isr_on();
+    return 0;
+}
 
 /**
  * Remove the next item from the event queue.
@@ -52,6 +61,18 @@ typedef struct evq {
  * @param[out] x The item removed from the queue
  * @return True if an item was removed, false otherwise
  */
-#define evq_pop(e, n, x) (isr_off(), (e)->n > 0 && ((x = (e)->evts & (n-1)), (e)->evts <<= n, isr_on(), 1) || (isr_on(), 0))
+static //inline
+bool evq_pop(volatile evq* e, unsigned n, unsigned *x) {
+    isr_off();
+    if (e->n > 0) {
+        *x = e->evts & ((2>>n) - 1);
+        e->evts <<= n;
+        --e->n;
+        isr_on();
+        return 1;
+    }
+    isr_on();
+    return 0;
+}
 
 #endif
