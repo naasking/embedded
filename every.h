@@ -33,9 +33,9 @@
  */
 
 /**
- * Defines a block of code that runs periodically every 'x' * 'units' of time.
- * x: the number of time units
- * units: millis or micros
+ * @file every.h
+ * 
+ * Synchronously runs a code block.
  * 
  * Example:
  * 
@@ -44,6 +44,14 @@
  *      // do something
  *    }
  * }
+ */
+
+/**
+ * Declare a periodic code block.
+ * 
+ * Defines a block of code that runs periodically every 'x' * 'units' of time.
+ * @param x The number of time units
+ * @param units The time base, millis or micros on Arduino (clock_ms or clock_us)
  */
 #define every(x, units) \
   static unsigned long _every##_##__LINE__ = 0; \
