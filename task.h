@@ -47,23 +47,22 @@
  * This won't be real-time without very careful analysis of the longest
  * code sequence between yield points, which is what determines max latency.
  *
- * Cost of scheduling is O(N), where N = number of tasks. N is typically very
- * low for the contexts in which task.h should be used.
+ * Cost of scheduling is O(N), where N = number of tasks. N should be very
+ * low for the contexts in which task.h is appropriate.
  *
- * Every task MUST call one of the task_X() timing functions somewhere in its
- * processing loop in order for scheduling to work correctly.
- * 
- * Callers must define their local state as a struct and include task_state:
- * 
- *  struct fn_state {
- *  	task_state;
- *      ...
- *  }
- *
- * There is only one rule to follow to ensure this all works: place all switch
- * statements in their own function. task.h uses Duff's device which does not
- * play well with switch. If you always place the switch in its own function
- * you won't have any issues.
+ * Rules for correct usage:
+ * 1. Every task MUST call one of the task_X() timing functions somewhere in 
+ *    its processing loop in order for scheduling to work correctly.
+ * 2. Tasks must define all local state as fields in a struct.
+ * 3. The task structure must include task_state somewhere there so the
+ *    required scheduling data is defined:
+ *      struct fn_state {
+ *  	    task_state;
+ *          ...
+ *      }
+ * 4. Place all switch statements in their own function. task.h uses Duff's
+ *    device which does not play well with switch. If you always place the
+ *    switch in its own function you won't have any issues.
  */
 
 #include <stdio.h>
@@ -73,7 +72,7 @@
 /**
  * The task status.
  */
-typedef enum TASK_STATE { TASK_START = 0, TASK_RUNNING = TASK_START, TASK_EXIT = 1 } task;
+typedef enum TASK_STATE { TASK_START = 0, TASK_EXIT = 1 } task;
 
 /**
  * Task scheduling data.
@@ -122,7 +121,7 @@ struct task_state {
  * 
  * @param deadline The task's new deadline
  */
-#define task_resched(deadline) task_deadline(_task_state) = (deadline); task_yield() 
+#define task_resched(deadline) task_deadline(_task_state) = (deadline); task_yield()
 
 /**
  * Declare a periodic task.
@@ -133,6 +132,8 @@ struct task_state {
  * @param ms The periodic schedule, in milliseconds.
  */
 #define task_period(ms) task_resched(task_deadline() + (ms))
+
+//FIXME: add a sample for exponential backoff, possibly using task resume or deadline
 
 /**
  * The task's current deadline.

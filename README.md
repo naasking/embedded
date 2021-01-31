@@ -170,10 +170,12 @@ first scheduling. Tasks are mainly concerned with precise timing control:
                  task_sched(example, &t2state));
     }
 
-This uses Duff's device, like async.h, and so local variables all need to
-be placed in the task state structure, and you should be careful with
-the use of switch statements. A simple rule of thumb that avoids all
-difficulties: place all switch statements in their own functions.
+Rules for use:
+ 1. All local variables need to be lifted into the structure passed in.
+ 2. The structure passed in should include `task_state` declaration.
+ 3. The task must call a task_X() function at some point or it will
+    starve all other tasks.
+ 4. Place all switch statements in the task in their own functions.
 
 ## ctxt.h
 
