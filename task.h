@@ -65,14 +65,13 @@
  *    switch in its own function you won't have any issues.
  */
 
-#include <stdio.h>
 #include "async.h"
 #include "clock.h"
 
 /**
  * The task status.
  */
-typedef enum TASK_STATE { TASK_START = 0, TASK_EXIT = 1 } task;
+typedef enum TASK_STATE { TASK_START = 1, TASK_DONE = 0 } task;
 
 /**
  * Task scheduling data.
@@ -101,7 +100,7 @@ struct task_state {
  * 
  * @param ms The clock time in milliseconds
  */
-#define task_wake(ms) { _task_state->resume = (ms); task_yield() }
+#define task_wake(ms) _task_state->resume = (ms); task_yield()
 
 /**
  * Sleep for the given time span.
@@ -158,12 +157,12 @@ struct task_state {
 /**
  * Mark the end of a task procedure.
  */
-#define task_end case TASK_EXIT: task_exit; }
+#define task_end case TASK_DONE: return TASK_DONE; }
 
 /**
  * Mark task as completed and exit.
  */
-#define task_exit return TASK_EXIT
+#define task_exit return TASK_DONE
 
 /**
  * Initialize a task structure.
@@ -190,7 +189,7 @@ struct task_state {
 }
 
 //FIXME: have conditional compilation flag for "persistent processes", which
-//skips the TASK_EXIT status check as all processes will run forever. Just a
+//skips the TASK_DONE status check as all processes will run forever. Just a
 //minor optimization which could save time and energy on embedded devices.
 
 /**
@@ -203,7 +202,7 @@ struct task_state {
  * @param t The task state
  */
 #define task_sched(f, t) \
-if ((t)->task_k != TASK_EXIT && (f)->_task_state.resume <= _task_now && task_deadline(t) < _task_deadline) { \
+if ((t)->task_k != TASK_DONE && (f)->_task_state.resume <= _task_now && task_deadline(t) < _task_deadline) { \
   _task_deadline = (t)->_task_state.deadline; \
   _task_st = (t); \
   _task_f = (task(*)(void*))(f); \

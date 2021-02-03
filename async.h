@@ -62,12 +62,10 @@
  *    These must be changed into non-blocking calls that test a condition.
  */
 
-#include <limits.h>
-
 /**
  * The async computation status
  */
-typedef enum ASYNC_EVT { ASYNC_INIT = 0, ASYNC_CONT = ASYNC_INIT, ASYNC_DONE = 1 } async;
+typedef enum ASYNC_EVT { ASYNC_DONE = 0, ASYNC_INIT = 1 } async;
 
 /**
  * Declare the async state
@@ -89,7 +87,7 @@ struct async { async_state; };
 /**
  * Mark the end of a async subroutine
  */
-#define async_end *_async_k=ASYNC_DONE; case ASYNC_DONE: return ASYNC_DONE; }
+#define async_end *_async_k=ASYNC_DONE; return ASYNC_DONE; }
 
 /**
  * Wait until the condition succeeds
@@ -101,7 +99,7 @@ struct async { async_state; };
  * Wait while the condition succeeds
  * @param cond The condition that must fail before execution can proceed
  */
-#define await_while(cond) *_async_k = __LINE__; case __LINE__: if (cond) return ASYNC_CONT
+#define await_while(cond) *_async_k = __LINE__; case __LINE__: if (cond) return __LINE__
 
 /**
  * Yield execution
