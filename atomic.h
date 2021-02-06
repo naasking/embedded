@@ -9,11 +9,9 @@
 /**
  * Lock-Free Atomic Operations
  * 
- * These provide some low-level operations for reading and writing values and
- * bytes without requiring locks, using only volatile read/write and only a
- * single writer. Multiple writers can possibly be supported with a spin
- * wait on _atomic_begin_write(), but this will require careful design to
- * ensure proper mutual exclusion between writers.
+ * These are some low-level operations for multi-reader and single-writer 
+ * concurrent values and bytes without requiring locks, using only volatile
+ * read/write.
  * 
  * Priority is given to writers who always proceed without waiting due to the
  * single writer requirement.
@@ -21,18 +19,23 @@
  * Readers spin wait when they detect a write in progress, or that a write
  * occurred while they were reading.
  * 
- * This should also work on 8-bit microcontrollers to read multi-byte values,
- * since they also prevent torn reads.
+ * This should also work on 8-bit microcontrollers to read multi-byte values.
  * 
  * It accomplishes this via a volatile 'version' state, which monotonically
- * increases with each write. Overflow shouldn't affect operations.
+ * increases with each write. Overflow shouldn't affect safety.
  */
 
-#define atomic(T) struct atomic##_##T { \
-    T value; \
-    char vers; \
-}
+/* FIXME: Multiple writers can possibly be supported with a spin
+ * wait on _atomic_begin_write(), but this will require careful design to
+ * ensure proper mutual exclusion between writers.
+ */
 
+/**
+ * Code block that atomically reads a given type.
+ * @param T The type to read.
+ * @param version The version number field.
+ * @param location The address to atomically read.
+ */
 #define _atomic_read(T, version, location) \
     T x;\
     unsigned old;\
@@ -154,7 +157,7 @@ void atomic_readv(volatile unsigned* version, void* output, volatile void *locat
     do
     {
         old = _atomic_begin_read(version);
-        // pretend it's const since we check for concurrent updates after the fact
+        // pretend it's const since we check for concurrent updates manually
         memcpy(output, (const void*)location, bytes);
     } while (old != _atomic_end_read(version));
 }
