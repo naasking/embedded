@@ -170,7 +170,7 @@ void atomic_readv(volatile unsigned* version, void* output, volatile void *locat
  * @param location The address to write.
  * @param value The value to write.
  */
-static
+static inline
 void atomic_writei16(volatile unsigned* version, int16_t *location, int16_t value) {
     _atomic_begin_write(version);
     *location = value;
@@ -183,7 +183,7 @@ void atomic_writei16(volatile unsigned* version, int16_t *location, int16_t valu
  * @param location The address to write.
  * @param value The value to write.
  */
-static
+static inline
 void atomic_writeu16(volatile unsigned* version, uint16_t *location, uint16_t value) {
     _atomic_begin_write(version);
     *location = value;
@@ -196,7 +196,7 @@ void atomic_writeu16(volatile unsigned* version, uint16_t *location, uint16_t va
  * @param location The address to write.
  * @param value The value to write.
  */
-static
+static inline
 void atomic_writei32(volatile unsigned* version, int32_t *location, int32_t value) {
     _atomic_begin_write(version);
     *location = value;
@@ -209,7 +209,7 @@ void atomic_writei32(volatile unsigned* version, int32_t *location, int32_t valu
  * @param location The address to write.
  * @param value The value to write.
  */
-static
+static inline
 void atomic_writeu32(volatile unsigned* version, uint32_t *location, uint32_t value) {
     _atomic_begin_write(version);
     *location = value;
@@ -222,7 +222,7 @@ void atomic_writeu32(volatile unsigned* version, uint32_t *location, uint32_t va
  * @param location The address to write.
  * @param value The value to write.
  */
-static
+static inline
 void atomic_writei64(volatile unsigned* version, int64_t *location, int64_t value) {
     _atomic_begin_write(version);
     *location = value;
@@ -235,7 +235,7 @@ void atomic_writei64(volatile unsigned* version, int64_t *location, int64_t valu
  * @param location The address to write.
  * @param value The value to write.
  */
-static
+static inline
 void atomic_writeu64(volatile unsigned* version, uint64_t *location, uint64_t value) {
     _atomic_begin_write(version);
     *location = value;
@@ -249,7 +249,7 @@ void atomic_writeu64(volatile unsigned* version, uint64_t *location, uint64_t va
  * @param location The location to which to copy.
  * @param bytes The number of bytes to copy.
  */
-static
+static inline
 void atomic_writev(volatile unsigned* version, volatile void *location, const void* source, size_t bytes) {
     _atomic_begin_write(version);
     // pretend it's const since we check for concurrent updates after the fact
