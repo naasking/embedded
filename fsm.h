@@ -14,7 +14,7 @@
 #define FSM(states, events, ...) struct { \
     uint8_t state; \
     __VA_ARGS__; \
-    equeue evts;
+    equeue evts; \
 }
 #define MRG(state, evt) (evt << 8) | state
 #define CAT(x,y) x##_##y
