@@ -253,7 +253,7 @@ static inline
 void atomic_writev(volatile unsigned* version, volatile void* location, const void* source, size_t bytes) {
     _atomic_begin_write(version);
     // pretend it's const since we check for concurrent updates after the fact
-    memcpy((const void*)location, source, bytes);
+    memcpy((void*)location, source, bytes);
     _atomic_end_write(version);
 }
 
