@@ -82,7 +82,7 @@ struct async { async_state; };
  *
  * @param k The async state
  */
-#define async_begin(k) switch(*_async_k) { default:
+#define async_begin(k) switch(k->_async_k) { default:
 
 /**
  * Mark the end of a async subroutine
