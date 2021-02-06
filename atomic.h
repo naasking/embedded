@@ -46,7 +46,7 @@
     } while (old != _atomic_end_read(version)); \
     return x;
 
-static
+static inline
 unsigned _atomic_begin_read(volatile unsigned* version) {
     unsigned v;
     // loop until version is even = no write in progress
@@ -85,7 +85,7 @@ void _atomic_end_write(volatile unsigned *version) {
  * @return The value at the given address.
  */
 static
-uint16_t atomic_readu16(volatile unsigned* version, uint16_t *location) {
+uint16_t atomic_readu16(volatile unsigned* version, volatile uint16_t* location) {
     _atomic_read(uint16_t, version, location);
 }
 
@@ -96,7 +96,7 @@ uint16_t atomic_readu16(volatile unsigned* version, uint16_t *location) {
  * @return The value at the given address.
  */
 static
-int16_t atomic_readi16(volatile unsigned* version, int16_t *location) {
+int16_t atomic_readi16(volatile unsigned* version, volatile int16_t* location) {
     _atomic_read(int16_t, version, location);
 }
 
@@ -107,7 +107,7 @@ int16_t atomic_readi16(volatile unsigned* version, int16_t *location) {
  * @return The value at the given address.
  */
 static
-uint32_t atomic_readu32(volatile unsigned* version, uint32_t *location) {
+uint32_t atomic_readu32(volatile unsigned* version, volatile uint32_t* location) {
     _atomic_read(uint32_t, version, location);
 }
 
@@ -118,7 +118,7 @@ uint32_t atomic_readu32(volatile unsigned* version, uint32_t *location) {
  * @return The value at the given address.
  */
 static
-int32_t atomic_readi32(volatile unsigned* version, int32_t *location) {
+int32_t atomic_readi32(volatile unsigned* version, volatile int32_t* location) {
     _atomic_read(int32_t, version, location);
 }
 
@@ -129,7 +129,7 @@ int32_t atomic_readi32(volatile unsigned* version, int32_t *location) {
  * @return The value at the given address.
  */
 static
-uint64_t atomic_readu64(volatile unsigned* version, uint64_t *location) {
+uint64_t atomic_readu64(volatile unsigned* version, volatile uint64_t* location) {
     _atomic_read(uint64_t, version, location);
 }
 
@@ -140,7 +140,7 @@ uint64_t atomic_readu64(volatile unsigned* version, uint64_t *location) {
  * @return The value at the given address.
  */
 static
-int64_t atomic_readi64(volatile unsigned* version, int64_t *location) {
+int64_t atomic_readi64(volatile unsigned* version, volatile int64_t* location) {
     _atomic_read(int64_t, version, location);
 }
 
@@ -152,7 +152,7 @@ int64_t atomic_readi64(volatile unsigned* version, int64_t *location) {
  * @param bytes The number of bytes to copy.
  */
 static
-void atomic_readv(volatile unsigned* version, void* output, volatile void *location, size_t bytes) {
+void atomic_readv(volatile unsigned* version, void* output, volatile void* location, size_t bytes) {
     unsigned old;
     do
     {
@@ -171,7 +171,7 @@ void atomic_readv(volatile unsigned* version, void* output, volatile void *locat
  * @param value The value to write.
  */
 static inline
-void atomic_writei16(volatile unsigned* version, int16_t *location, int16_t value) {
+void atomic_writei16(volatile unsigned* version, volatile int16_t* location, int16_t value) {
     _atomic_begin_write(version);
     *location = value;
     _atomic_end_write(version);
@@ -184,7 +184,7 @@ void atomic_writei16(volatile unsigned* version, int16_t *location, int16_t valu
  * @param value The value to write.
  */
 static inline
-void atomic_writeu16(volatile unsigned* version, uint16_t *location, uint16_t value) {
+void atomic_writeu16(volatile unsigned* version, volatile uint16_t* location, uint16_t value) {
     _atomic_begin_write(version);
     *location = value;
     _atomic_end_write(version);
@@ -197,7 +197,7 @@ void atomic_writeu16(volatile unsigned* version, uint16_t *location, uint16_t va
  * @param value The value to write.
  */
 static inline
-void atomic_writei32(volatile unsigned* version, int32_t *location, int32_t value) {
+void atomic_writei32(volatile unsigned* version, volatile int32_t* location, int32_t value) {
     _atomic_begin_write(version);
     *location = value;
     _atomic_end_write(version);
@@ -210,7 +210,7 @@ void atomic_writei32(volatile unsigned* version, int32_t *location, int32_t valu
  * @param value The value to write.
  */
 static inline
-void atomic_writeu32(volatile unsigned* version, uint32_t *location, uint32_t value) {
+void atomic_writeu32(volatile unsigned* version, volatile uint32_t* location, uint32_t value) {
     _atomic_begin_write(version);
     *location = value;
     _atomic_end_write(version);
@@ -223,7 +223,7 @@ void atomic_writeu32(volatile unsigned* version, uint32_t *location, uint32_t va
  * @param value The value to write.
  */
 static inline
-void atomic_writei64(volatile unsigned* version, int64_t *location, int64_t value) {
+void atomic_writei64(volatile unsigned* version, volatile int64_t* location, int64_t value) {
     _atomic_begin_write(version);
     *location = value;
     _atomic_end_write(version);
@@ -236,7 +236,7 @@ void atomic_writei64(volatile unsigned* version, int64_t *location, int64_t valu
  * @param value The value to write.
  */
 static inline
-void atomic_writeu64(volatile unsigned* version, uint64_t *location, uint64_t value) {
+void atomic_writeu64(volatile unsigned* version, volatile uint64_t* location, uint64_t value) {
     _atomic_begin_write(version);
     *location = value;
     _atomic_end_write(version);
@@ -250,7 +250,7 @@ void atomic_writeu64(volatile unsigned* version, uint64_t *location, uint64_t va
  * @param bytes The number of bytes to copy.
  */
 static inline
-void atomic_writev(volatile unsigned* version, volatile void *location, const void* source, size_t bytes) {
+void atomic_writev(volatile unsigned* version, volatile void* location, const void* source, size_t bytes) {
     _atomic_begin_write(version);
     // pretend it's const since we check for concurrent updates after the fact
     memcpy((const void*)location, source, bytes);
