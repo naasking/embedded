@@ -157,7 +157,7 @@ struct task_state {
 /**
  * Mark the end of a task procedure.
  */
-#define task_end case TASK_DONE: return TASK_DONE; }
+#define task_end case TASK_DONE: task_exit; }
 
 /**
  * Mark task as completed and exit.
