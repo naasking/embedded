@@ -79,6 +79,18 @@ typedef enum SEQ_STATUS { SEQ_DONE = 0, SEQ_INIT = 1 } generator;
 #define seq_state generator _seq_k
 
 /**
+ * The type of sequence state.
+ */
+typedef struct {
+    seq_state;
+} seq;
+
+/**
+ * The function type for a dynamic sequence.
+ */
+typedef generator (*seq_fn)(seq*, void*);
+
+/**
  * Mark the start of an generator.
  *
  * @param k The sequence state.
@@ -137,20 +149,11 @@ generator bonus(foo_t self, int* out) {
 }
 
 /**
- * The function type for a dynamic sequence.
- */
-typedef generator (*dseq_fn)(dseq_state*, void*);
-
-typedef struct {
-    seq_state;
-} dseq_state;
-
-/**
  * A dynamically dispatched sequence.
  */
 typedef struct {
-    dseq_fn fn;
-    dseq_state* state;
+    seq_fn fn;
+    seq* state;
 } dseq;
 
 /**
@@ -160,7 +163,7 @@ typedef struct {
  * @param dseq The initialized dynamic sequence.
  */
 static inline
-void dseq_init(dseq_fn fn, dseq_state* state, dseq* out) {
+void dseq_init(seq_fn fn, seq* state, dseq* out) {
     out->fn = fn;
     out->state = state;
 }
@@ -171,11 +174,11 @@ void dseq_init(dseq_fn fn, dseq_state* state, dseq* out) {
  * @param out The next value returned.
  * @return The generator state.
  */
-static inline
-generator dseq_next(dseq* self, void* out) {
-    return seq_next(self->fn, self->state, out);
-}
+#define dseq_next(self, out) seq_next(self->fn, self->state, out)
 
+/**
+ * The data structure for mapped sequences.
+ */
 struct seq_map {
     dseq seq;
     size_t sz_tmp;
@@ -191,10 +194,10 @@ struct seq_map {
  * @param out The map structure to initialize.
  */
 static inline
-void map_seq(generator (*fn)(void*, void*), dseq_state* state, void* (*map)(void*), size_t sz_tmp, struct seq_map* out) {
+void map_seq(generator (*fn)(void*, void*), seq* state, void* (*map)(void*), size_t sz_tmp, struct seq_map* out) {
     out->map = map;
     out->sz_tmp = sz_tmp;
-    dseq_init((dseq_fn)&map_next, state, &out->seq);
+    dseq_init((seq_fn)&map_next, state, &out->seq);
 }
 
 /**
@@ -220,7 +223,7 @@ void map_dseq(dseq* seq, void* (*map)(void*), size_t sz_tmp, struct seq_map* out
 static inline
 generator map_next(struct seq_map* self, void* out) {
     void* tmp = alloca(self->sz_tmp);
-    generator x = dseq_next(&self->seq, tmp);
+    generator x = dseq_next((&self->seq), tmp);
     out = self->map(tmp); // map temporary to final output
     return x;
 }
