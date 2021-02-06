@@ -70,7 +70,7 @@ typedef enum ASYNC_EVT { ASYNC_DONE = 0, ASYNC_INIT = 1 } async;
 /**
  * Declare the async state
  */
-#define async_state async _async_k
+#define async_state enum ASYNC_EVT _async_k
 
 /**
  * Core async structure, optional to use.
