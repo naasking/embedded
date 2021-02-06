@@ -182,6 +182,8 @@ void dseq_init(seq_fn fn, seq* state, dseq* out) {
 struct seq_map {
     dseq seq;
     size_t sz_tmp;
+    //FIXME: void*->void* is a bit restrictive. This should really be a universal type of some kind:
+    //  typedef union { void *p; unsigned ui; int si; char sc; unsigned char uc; uintptr_t up; ... } univ;
     void* (*map)(void*);
 };
 
@@ -195,6 +197,10 @@ struct seq_map {
  */
 static inline
 void map_seq(generator (*fn)(void*, void*), seq* state, void* (*map)(void*), size_t sz_tmp, struct seq_map* out) {
+    //FIXME: this copies over seq state, but maybe it should just link to it?
+    //FIXME: optimize a map.map.map... sequence by flattening into an array of mapping functions, ie. something like:
+    //  struct seq_map { dseq seq; size_t n; struct { size_t sz_tmp; void* (*map)(void*) } maps[]; } }
+    //This would eliminate the stack frames and indirect calls of a whole sequence of mapping operations.
     out->map = map;
     out->sz_tmp = sz_tmp;
     dseq_init((seq_fn)&map_next, state, &out->seq);
