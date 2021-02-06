@@ -90,7 +90,7 @@ struct task_state {
 /**
  * Yield control back to the scheduler.
  */
-#define task_yield() return __LINE__; case __LINE__:
+#define task_yield() { return __LINE__; case __LINE__: }
 
 /**
  * Wake the task at the given time.
@@ -100,7 +100,7 @@ struct task_state {
  * 
  * @param ms The clock time in milliseconds
  */
-#define task_wake(ms) _task_state->resume = (ms); task_yield()
+#define task_wake(ms) {_task_state->resume = (ms); task_yield(); }
 
 /**
  * Sleep for the given time span.
@@ -145,7 +145,7 @@ struct task_state {
  * @param f The task procedure
  * @param t The task state
  */
-#define task_switch(f, t) (t)->_task_state.task_k = (f)(t)
+#define task_switch(f, t) {(t)->_task_state.task_k = (f)(t);}
 
 /**
  * Mark the beginning of a task procedure.

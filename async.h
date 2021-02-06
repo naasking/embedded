@@ -70,7 +70,7 @@ typedef enum ASYNC_EVT { ASYNC_DONE = 0, ASYNC_INIT = 1 } async;
 /**
  * Declare the async state
  */
-#define async_state unsigned _async_k
+#define async_state async _async_k
 
 /**
  * Core async structure, optional to use.
@@ -87,7 +87,7 @@ struct async { async_state; };
 /**
  * Mark the end of a async subroutine
  */
-#define async_end *_async_k=ASYNC_DONE; return ASYNC_DONE; }
+#define async_end { *_async_k=ASYNC_DONE; return ASYNC_DONE; }
 
 /**
  * Wait until the condition succeeds
@@ -99,17 +99,17 @@ struct async { async_state; };
  * Wait while the condition succeeds
  * @param cond The condition that must fail before execution can proceed
  */
-#define await_while(cond) *_async_k = __LINE__; case __LINE__: if (cond) return __LINE__
+#define await_while(cond) { *_async_k = __LINE__; case __LINE__: if (cond) return __LINE__; }
 
 /**
  * Yield execution
  */
-#define async_yield *_async_k = __LINE__; return ASYNC_CONT; case __LINE__:
+#define async_yield { *_async_k = __LINE__; return __LINE__; case __LINE__: }
 
 /**
  * Exit the current async subroutine
  */
-#define async_exit *_async_k = ASYNC_DONE; return ASYNC_DONE
+#define async_exit { *_async_k = ASYNC_DONE; return ASYNC_DONE; }
 
 /**
  * Initialize a new async computation
