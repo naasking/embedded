@@ -152,7 +152,7 @@ struct task_state {
  * 
  * @param t The task state
  */
-#define task_begin(t) struct task_state* _task_state = &(t)->_task_state; switch(_task_state->task_k) { case TASK_START:
+#define task_begin(t) struct task_state* _task_state = &(t)->task_k; switch(_task_state->task_k) { case TASK_START:
 
 /**
  * Mark the end of a task procedure.
