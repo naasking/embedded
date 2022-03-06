@@ -31,7 +31,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "io.h"
+#include <stdint.h>
 
 /**
  * @file rotary.h
@@ -79,13 +79,13 @@ enum ROTARY_TRANSITIONS {
 /**
  * Process a rotary encoder step.
  * 
- * @param rotary Rotary encoder state
- * @param rotb Rotary encoder B pin
- * @param rota Rotary encoder A pin
- * @return 1 = 1 step clockwise, -1 = 1 step counter clockwise, 0 = no valid step
+ * @param rotary  Rotary encoder state
+ * @param rotb    Rotary encoder B pin state
+ * @param rota    Rotary encoder A pin state
+ * @return 1 = one step clockwise, -1 = one step counter clockwise, 0 = invalid step
  */
-static int rotary_step(unsigned *rotary, unsigned rotb, unsigned rota) {
-  *rotary = 0x0f & (*rotary << 2) | io_readb(rotb) << 1 | io_readb(rota);
+static int rotary_step(uint16_t *rotary, unsigned rotb, unsigned rota) {
+  *rotary = 0x0f & (*rotary << 2) | rotb << 1 | rota;
   return rotary_cw(*rotary) ? 1:
          rotary_ccw(*rotary)?-1:
                               0;

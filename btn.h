@@ -35,7 +35,6 @@
  */
 
 #include "clock.h"
-#include "io.h"
 
 /**
  * @file btn.h
@@ -93,15 +92,14 @@ typedef struct {
  * Checks whether the button has finished bouncing. btn->state always reflects the
  * last settled button state until this function returns true.
  * 
- * @param pin The pin number
- * @param btn The button state
- * @param limit The sample threshold to consider the button settled
- * @return True if button value has settled, false if it's bouncing.
+ * @param state   The current pin state
+ * @param btn     The button state
+ * @param samples The sample threshold to consider the button settled
+ * @return        True if button value has settled, false if it's bouncing.
  */
-static unsigned btn_poll(unsigned pin, btn_sync* btn, unsigned limit) {
-  unsigned state = io_readb(pin);
-  /* button state changes after the current status is seem 'limit' times */
-  if (state != btn->state && limit < ++btn->count) {
+static unsigned btn_poll(unsigned state, btn_sync* btn, unsigned samples) {
+  /* button state changes after the current pin state is seen 'samples' times */
+  if (state != btn->state && samples < ++btn->count) {
     btn->state = state;
     btn->count = 0;
     return 1;
@@ -114,11 +112,11 @@ static unsigned btn_poll(unsigned pin, btn_sync* btn, unsigned limit) {
 
 
 /**
- * Button data structure tracking current state and a counter for debouncing.
+ * Button data structure using a timestamp to debounce.
  */
 typedef struct {
-  unsigned state : 1;
-  unsigned long last : 8 * sizeof(unsigned)   - 1;
+  unsigned state;
+  ms_t tstamp;
 } btn_async;
 
 /**
@@ -127,22 +125,23 @@ typedef struct {
  * Update the button state based on an interrupt change event.
  */
 static void btn_onchange(btn_async* btn) {
-  if (btn->last == 0) {
-    btn->last = clock_ms();
+  if (btn->tstamp == 0) {
+    btn->tstamp = clock_ms();
   }
 }
 
 /**
  * Check the button's status.
  * 
- * Returns: true if button value has settled, false if it's bouncing.
  * btn->state always reflects the last settled button state.
+ * 
+ * @return True if button value has settled, false if it's bouncing.
  */
-static unsigned btn_ready(unsigned pin, btn_async* btn, unsigned delay) {
+static unsigned btn_ready(unsigned bit, btn_async* btn, unsigned delay) {
   /* button state is updated after 'delay' has elapsed */
-  if (clock_ms() - btn->last > delay) {
-    btn->state = io_readb(pin);
-    btn->last = 0;
+  if (clock_ms() - btn->tstamp > delay) {
+    btn->state = bit;
+    btn->tstamp = 0;
     return 1;
   }
   return 0;
