@@ -77,9 +77,9 @@ typedef enum TASK_STATE { TASK_START = 1, TASK_DONE = 0 } task;
  * Task scheduling data.
  */
 struct task_state {
-    task task_k;            /* the task continuation */
-    unsigned long deadline; /* next deadline in ms */
-    unsigned long resume;   /* resume the task at the given time in ms */
+    task task_k;    /* the task continuation */
+    ms_t deadline;  /* next deadline in ms */
+    ms_t resume;    /* resume the task at the given time in ms */
 };
 
 /**
@@ -191,6 +191,10 @@ struct task_state {
 //FIXME: have conditional compilation flag for "persistent processes", which
 //skips the TASK_DONE status check as all processes will run forever. Just a
 //minor optimization which could save time and energy on embedded devices.
+
+//FIXME: task sleep/resume/deadlines don't properly handle overflow. If they overflow
+//then the scheduler checks will always pick them to run because clock_ms() will always
+//be greater than the next deadline until the clock itself overflows.
 
 /**
  * Schedule a task.
