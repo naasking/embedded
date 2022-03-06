@@ -42,28 +42,19 @@
 /**
  * Clock time in milliseconds.
  * 
- * @return Time in milliseconds, type is unsigned long
+ * @return Time in milliseconds, type is ms_t
  */
 #define clock_ms() _clock_ms()
 
-/**
- * Clock time in microseconds.
- * 
- * @return Time in microseconds, type is unsigned long
- */
-#define clock_us() _clock_ms()
+// /**
+//  * Clock time in microseconds.
+//  * 
+//  * @return Time in microseconds, type is unsigned long
+//  */
+// #define clock_us() _clock_ms()
 
-/************* INTERNALS ****************/
-
-//FIXME: don't like hard-coding Arduino dependency. See io.h.
-
-/* default to Arduino time API */
-#ifndef _clock_ms
-#define _clock_ms millis
-#endif
-
-#ifndef _clock_us
-#define _clock_us micros
-#endif
+// #ifndef _clock_ms
+// #define _clock_ms() 0
+// #endif
 
 #endif
