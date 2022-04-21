@@ -48,7 +48,7 @@
  * }
  * 
  * static void rot_onchange() {
- *    rot_pos += rotary_step(&rot_state, PIN_A, PIN_B);
+ *    rot_pos += rotary_step(&rot_state, digitalRead(PIN_A), digitalRead(PIN_B));
  * }
  */
 
@@ -61,7 +61,7 @@ enum ROTARY_TRANSITIONS {
 };
 
 /**
- * Check whether last rotary encoder move was clockwise.
+ * @brief Check whether last rotary encoder move was clockwise.
  * 
  * @param r Rotary encoder state
  * @return 1 if last move was clockwise, 0 otherwise
@@ -69,7 +69,7 @@ enum ROTARY_TRANSITIONS {
 #define rotary_cw(r) (1 << (r)) & ROTARY_CW
 
 /**
- * Check whether last rotary encoder move was counterclockwise.
+ * @brief Check whether last rotary encoder move was counterclockwise.
  * 
  * @param r Rotary encoder state
  * @return 1 if last move was counterclockwise, 0 otherwise
@@ -77,7 +77,7 @@ enum ROTARY_TRANSITIONS {
 #define rotary_ccw(r) (1 << (r)) & ROTARY_CCW
 
 /**
- * Process a rotary encoder step.
+ * @brief Process a rotary encoder step.
  * 
  * @param rotary  Rotary encoder state
  * @param rotb    Rotary encoder B pin state
